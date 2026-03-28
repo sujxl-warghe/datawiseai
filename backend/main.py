@@ -1,8 +1,12 @@
 import sys
 import os
 
-# Ensure backend directory is in Python path — fixes Render deployment
-sys.path.insert(0, os.path.dirname(__file__))
+# ── CRITICAL: Fix Python path for Render.com deployment ──
+# Render runs from /opt/render/project/src/ but our code is in /backend/
+# This ensures all modules (routers, services, utils, models) are found
+_backend_dir = os.path.dirname(os.path.abspath(__file__))
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,7 +36,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="DataWiseAI API",
-    description="AI-powered data analyst platform",
     version="4.0.0",
     lifespan=lifespan,
     docs_url="/docs" if os.getenv("ENV") != "production" else None,
