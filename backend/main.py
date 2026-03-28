@@ -1,23 +1,32 @@
+import sys
+import os
+
+# Ensure backend directory is in Python path — fixes Render deployment
+sys.path.insert(0, os.path.dirname(__file__))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from routers import files, query, history, ml, features, reports, auth
 from utils.database import connect_db, close_db
-import os
 
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
-    os.getenv("FRONTEND_URL", ""),          # e.g. https://datawiseai.vercel.app
-    os.getenv("FRONTEND_URL_WWW", ""),      # e.g. https://www.datawiseai.vercel.app
+    os.getenv("FRONTEND_URL", ""),
+    os.getenv("FRONTEND_URL_WWW", ""),
 ]
-ALLOWED_ORIGINS = [o for o in ALLOWED_ORIGINS if o]  # remove empty
+ALLOWED_ORIGINS = [o for o in ALLOWED_ORIGINS if o]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_db()
-    for folder in ["MODELS_DIR", "UPLOAD_DIR", "REPORTS_DIR"]:
-        os.makedirs(os.getenv(folder, f"./{folder.lower().replace('_dir','')}s"), exist_ok=True)
+    for d in [
+        os.getenv("UPLOAD_DIR",  "./uploads"),
+        os.getenv("MODELS_DIR",  "./models"),
+        os.getenv("REPORTS_DIR", "./reports"),
+    ]:
+        os.makedirs(d, exist_ok=True)
     yield
     await close_db()
 
