@@ -10,7 +10,6 @@ env/
 dist/
 build/
 uploads/
-models/
 reports/
 *.log
 .DS_Store
