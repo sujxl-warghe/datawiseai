@@ -38,7 +38,7 @@ app = FastAPI(
     title="DataWiseAI API",
     version="4.0.0",
     lifespan=lifespan,
-    docs_url="/docs" if os.getenv("ENV") != "production" else None,
+    docs_url="/docs",   # 👈 always ON
     redoc_url=None,
 )
 
