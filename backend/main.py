@@ -14,13 +14,6 @@ from contextlib import asynccontextmanager
 from routers import files, query, history, ml, features, reports, auth
 from utils.database import connect_db, close_db
 
-ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    os.getenv("FRONTEND_URL", ""),
-    os.getenv("FRONTEND_URL_WWW", ""),
-]
-ALLOWED_ORIGINS = [o for o in ALLOWED_ORIGINS if o]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,14 +34,20 @@ app = FastAPI(
     docs_url="/docs",   # 👈 always ON
     redoc_url=None,
 )
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://datawiseai-nine.vercel.app",
+        "https://datawiseai-cb91etwm7-sujalwarghe-4945s-projects.vercel.app",
+    ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 app.include_router(files.router,    prefix="/api/files",    tags=["Files"])
 app.include_router(query.router,    prefix="/api/query",    tags=["Query"])
