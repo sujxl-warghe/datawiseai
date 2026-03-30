@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://datawiseai.onrender.com'
+const BASE_URL = 'https://datawiseai.onrender.com'
 
 const api = axios.create({ baseURL: BASE_URL, timeout: 120000 })
 

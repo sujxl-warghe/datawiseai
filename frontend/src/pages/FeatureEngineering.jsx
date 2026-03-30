@@ -9,7 +9,7 @@ import FileSelector from '../components/chat/FileSelector'
 import DataTable from '../components/ui/DataTable'
 import toast from 'react-hot-toast'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const BASE_URL = 'https://datawiseai.onrender.com'
 
 const TYPE_COLORS = {
   numeric:     { bg: 'rgba(134,239,172,0.1)', color: '#86efac' },

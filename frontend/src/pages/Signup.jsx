@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Database, Eye, EyeOff, UserPlus, AlertCircle, Check } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const BASE_URL = 'https://datawiseai.onrender.com'
 
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 48 48">

@@ -4,7 +4,7 @@ import { FileText, Download, RefreshCw, CheckCircle, BarChart2, Brain, Wrench } 
 import FileSelector from '../components/chat/FileSelector'
 import toast from 'react-hot-toast'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const BASE_URL = 'https://datawiseai.onrender.com'
 
 export default function Report() {
   const [selectedFile, setSelectedFile] = useState(null)

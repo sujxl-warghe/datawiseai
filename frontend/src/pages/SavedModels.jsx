@@ -5,7 +5,7 @@ import { listSavedModels, deleteModel } from '../lib/api'
 import { formatRelative } from '../lib/utils'
 import toast from 'react-hot-toast'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const BASE_URL = 'https://datawiseai.onrender.com'
 
 const TASK_COLORS = {
   classification: { bg: 'rgba(134,239,172,0.1)', color: '#86efac' },

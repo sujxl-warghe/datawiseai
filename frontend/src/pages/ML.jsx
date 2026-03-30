@@ -10,7 +10,7 @@ import AlgoComparison from '../components/charts/AlgoComparison'
 import { formatRelative } from '../lib/utils'
 import toast from 'react-hot-toast'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const BASE_URL = 'https://datawiseai.onrender.com'
 
 const TASK_TYPES = [
   { value: 'classification', label: '🏷️ Classification', desc: 'Predict categories (spam/not spam)' },
