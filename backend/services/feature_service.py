@@ -1,7 +1,12 @@
 import sys, os; sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pandas as pd
 import numpy as np
+import logging
 from typing import Optional
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 # ── Available Transformations ──────────────────────────────────────
@@ -44,21 +49,32 @@ TRANSFORMATIONS = {
 
 
 def get_column_types(df: pd.DataFrame) -> dict:
-    """Classify each column by its type."""
+    """Classify each column by its type with safe error handling."""
     result = {}
-    for col in df.columns:
-        if pd.api.types.is_datetime64_any_dtype(df[col]):
-            result[col] = "datetime"
-        elif pd.api.types.is_numeric_dtype(df[col]):
-            result[col] = "numeric"
-        else:
-            # Try parsing as datetime
+    try:
+        for col in df.columns:
             try:
-                pd.to_datetime(df[col], errors='raise')
-                result[col] = "datetime"
-            except Exception:
-                result[col] = "categorical"
-    return result
+                if pd.api.types.is_datetime64_any_dtype(df[col]):
+                    result[col] = "datetime"
+                elif pd.api.types.is_numeric_dtype(df[col]):
+                    result[col] = "numeric"
+                else:
+                    # Try parsing as datetime
+                    try:
+                        pd.to_datetime(df[col], errors='raise')
+                        result[col] = "datetime"
+                    except Exception:
+                        result[col] = "categorical"
+            except Exception as col_error:
+                logger.warning(f"⚠️  Error classifying column '{col}': {str(col_error)}")
+                result[col] = "unknown"
+
+        logger.info(f"✓ Column types classified: {len(result)} columns")
+        return result
+
+    except Exception as e:
+        logger.error(f"✗ Error in get_column_types: {str(e)}")
+        return {}
 
 
 def get_suggested_transforms(df: pd.DataFrame) -> list:
@@ -147,10 +163,19 @@ def apply_transformation(
     new_col_name: Optional[str] = None,
 ) -> tuple[pd.DataFrame, str, str]:
     """
-    Apply a transformation to a column.
+    Apply a transformation to a column with comprehensive error handling.
     Returns: (modified_df, new_column_name, message)
     """
     df = df.copy()
+
+    # Validate inputs
+    if col not in df.columns:
+        logger.warning(f"⚠️  Column '{col}' not found in dataframe")
+        return df, "", f"Column '{col}' not found"
+
+    if transform not in TRANSFORMATIONS:
+        logger.warning(f"⚠️  Unknown transformation: {transform}")
+        return df, "", f"Unknown transformation: {transform}"
 
     # Auto-generate new column name
     if not new_col_name:
@@ -174,11 +199,15 @@ def apply_transformation(
 
         elif transform == "normalize":
             mn, mx = df[col].min(), df[col].max()
+            if pd.isna(mn) or pd.isna(mx):
+                return df, "", "Cannot normalize: column has no valid numeric values"
             df[new_col_name] = (df[col] - mn) / (mx - mn + 1e-9)
             msg = f"Normalized {col} to [0,1] → '{new_col_name}'"
 
         elif transform == "standardize":
             mean, std = df[col].mean(), df[col].std()
+            if pd.isna(mean) or pd.isna(std):
+                return df, "", "Cannot standardize: column has no valid numeric values"
             df[new_col_name] = (df[col] - mean) / (std + 1e-9)
             msg = f"Standardized {col} (mean=0, std=1) → '{new_col_name}'"
 
@@ -209,47 +238,77 @@ def apply_transformation(
 
         elif transform == "frequency":
             freq = df[col].value_counts()
+            if len(freq) == 0:
+                return df, "", "Cannot frequency encode: column has no valid values"
             df[new_col_name] = df[col].map(freq)
             msg = f"Frequency encoded {col} → '{new_col_name}'"
 
         # ── Datetime ──
         elif transform in ("extract_year", "extract_month", "extract_day", "extract_dow"):
-            dt = pd.to_datetime(df[col], errors='coerce')
-            part = transform.replace("extract_", "")
-            attr_map = {"year": "year", "month": "month", "day": "day", "dow": "dayofweek"}
-            df[new_col_name] = getattr(dt.dt, attr_map[part])
-            msg = f"Extracted {part} from {col} → '{new_col_name}'"
+            try:
+                dt = pd.to_datetime(df[col], errors='coerce')
+                part = transform.replace("extract_", "")
+                attr_map = {"year": "year", "month": "month", "day": "day", "dow": "dayofweek"}
+                if part not in attr_map:
+                    return df, "", f"Invalid datetime part: {part}"
+                df[new_col_name] = getattr(dt.dt, attr_map[part])
+                msg = f"Extracted {part} from {col} → '{new_col_name}'"
+            except Exception as e:
+                logger.error(f"✗ Datetime extraction failed: {str(e)}")
+                return df, "", f"Failed to extract {part} from date column: {str(e)}"
 
         # ── Combine ──
         elif transform in ("add", "subtract", "multiply", "divide"):
             if not col2 or col2 not in df.columns:
+                logger.warning(f"⚠️  Second column '{col2}' not found")
                 return df, "", f"Second column '{col2}' not found"
             ops = {"add": "+", "subtract": "-", "multiply": "×", "divide": "÷"}
-            if transform == "add":
-                df[new_col_name] = df[col] + df[col2]
-            elif transform == "subtract":
-                df[new_col_name] = df[col] - df[col2]
-            elif transform == "multiply":
-                df[new_col_name] = df[col] * df[col2]
-            elif transform == "divide":
-                df[new_col_name] = df[col] / df[col2].replace(0, np.nan)
-            msg = f"{col} {ops[transform]} {col2} → '{new_col_name}'"
+            try:
+                if transform == "add":
+                    df[new_col_name] = df[col] + df[col2]
+                elif transform == "subtract":
+                    df[new_col_name] = df[col] - df[col2]
+                elif transform == "multiply":
+                    df[new_col_name] = df[col] * df[col2]
+                elif transform == "divide":
+                    df[new_col_name] = df[col] / df[col2].replace(0, np.nan)
+                msg = f"{col} {ops[transform]} {col2} → '{new_col_name}'"
+            except Exception as e:
+                logger.error(f"✗ Combine operation failed: {str(e)}")
+                return df, "", f"Failed to combine columns: {str(e)}"
 
         # ── Missing value fills ──
         elif transform == "fill_mean":
-            df[col] = df[col].fillna(df[col].mean())
+            if not pd.api.types.is_numeric_dtype(df[col]):
+                return df, "", "Cannot fill mean: column is not numeric"
+            mean_val = df[col].mean()
+            if pd.isna(mean_val):
+                return df, "", "Cannot fill mean: all values are NaN"
+            df[col] = df[col].fillna(mean_val)
             new_col_name = col
-            msg = f"Filled NaN in '{col}' with mean ({df[col].mean():.3f})"
+            msg = f"Filled NaN in '{col}' with mean ({mean_val:.3f})"
 
         elif transform == "fill_median":
-            df[col] = df[col].fillna(df[col].median())
+            if not pd.api.types.is_numeric_dtype(df[col]):
+                return df, "", "Cannot fill median: column is not numeric"
+            median_val = df[col].median()
+            if pd.isna(median_val):
+                return df, "", "Cannot fill median: all values are NaN"
+            df[col] = df[col].fillna(median_val)
             new_col_name = col
-            msg = f"Filled NaN in '{col}' with median ({df[col].median():.3f})"
+            msg = f"Filled NaN in '{col}' with median ({median_val:.3f})"
 
         elif transform == "fill_mode":
-            df[col] = df[col].fillna(df[col].mode()[0])
-            new_col_name = col
-            msg = f"Filled NaN in '{col}' with mode"
+            try:
+                mode_val = df[col].mode()
+                if len(mode_val) == 0:
+                    return df, "", "Cannot fill mode: no valid values in column"
+                df[col] = df[col].fillna(mode_val[0])
+                new_col_name = col
+                msg = f"Filled NaN in '{col}' with mode"
+            except Exception as e:
+                logger.error(f"✗ Mode fill failed: {str(e)}")
+                return df, "", f"Failed to fill mode: {str(e)}"
 
         elif transform == "fill_zero":
             df[col] = df[col].fillna(0)
@@ -264,29 +323,47 @@ def apply_transformation(
             msg = f"Dropped {dropped} rows with NaN in '{col}'"
 
         else:
+            logger.warning(f"⚠️  Unknown transformation: {transform}")
             return df, "", f"Unknown transformation: {transform}"
 
+        logger.info(f"✓ Transformation applied: {transform} on {col} → {new_col_name}")
         return df, new_col_name, msg
 
     except Exception as e:
+        logger.error(f"✗ Exception applying {transform} on {col}: {str(e)}")
         return df, "", f"Error applying {transform}: {str(e)}"
 
 
 def get_column_stats(df: pd.DataFrame, col: str) -> dict:
-    """Get before/after stats for a column."""
-    stats = {
-        "col": col,
-        "dtype": str(df[col].dtype),
-        "missing": int(df[col].isnull().sum()),
-        "unique": int(df[col].nunique()),
-    }
-    if pd.api.types.is_numeric_dtype(df[col]):
-        data = df[col].dropna()
-        stats.update({
-            "mean":  round(float(data.mean()),  4) if len(data) else None,
-            "std":   round(float(data.std()),   4) if len(data) else None,
-            "min":   round(float(data.min()),   4) if len(data) else None,
-            "max":   round(float(data.max()),   4) if len(data) else None,
-            "skew":  round(float(data.skew()),  4) if len(data) else None,
-        })
-    return stats
+    """Get before/after stats for a column with safe error handling."""
+    try:
+        if col not in df.columns:
+            logger.warning(f"⚠️  Column '{col}' not found in dataframe")
+            return {"col": col, "error": "Column not found", "dtype": str}
+
+        stats = {
+            "col": col,
+            "dtype": str(df[col].dtype),
+            "missing": int(df[col].isnull().sum()),
+            "unique": int(df[col].nunique()),
+        }
+
+        if pd.api.types.is_numeric_dtype(df[col]):
+            data = df[col].dropna()
+            if len(data) > 0:
+                stats.update({
+                    "mean": round(float(data.mean()), 4),
+                    "std": round(float(data.std()), 4),
+                    "min": round(float(data.min()), 4),
+                    "max": round(float(data.max()), 4),
+                    "skew": round(float(data.skew()), 4),
+                })
+            else:
+                stats.update({"mean": None, "std": None, "min": None, "max": None, "skew": None})
+
+        logger.info(f"✓ Stats calculated for column: {col}")
+        return stats
+
+    except Exception as e:
+        logger.error(f"✗ Error calculating stats for {col}: {str(e)}")
+        return {"col": col, "error": str(e)}
