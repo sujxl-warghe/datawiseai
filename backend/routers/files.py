@@ -4,7 +4,9 @@ from fastapi.responses import JSONResponse
 from typing import List, Optional
 import json
 from datetime import datetime
+import logging
 
+logger = logging.getLogger(__name__)
 from services.file_service import save_upload_file, generate_file_id, delete_file, get_file_size
 from utils.data_processor import load_file_to_df, get_dataframe_summary, save_df_to_temp_csv
 from utils.database import get_db
@@ -65,8 +67,22 @@ async def upload_file(file: UploadFile = File(...)):
     }
 
     db = get_db()
-    if db is not None:
+    if db is None:
+        logger.error("DB connection is unavailable during file upload.")
+        # Rollback saved files to prevent orphan files
+        delete_file(file_path)
+        if csv_path: delete_file(csv_path)
+        raise HTTPException(503, "Database unavailable. Cannot persist file metadata.")
+
+    try:
         await db.files.insert_one(record)
+        logger.info(f"Successfully inserted file metadata for {file_id} into DB.")
+    except Exception as e:
+        logger.error(f"Failed to insert file metadata for {file_id}: {e}")
+        # Rollback saved files
+        delete_file(file_path)
+        if csv_path: delete_file(csv_path)
+        raise HTTPException(500, f"Database insertion failed: {e}")
 
     return FileResponse(
         file_id=file_id,
@@ -86,7 +102,7 @@ async def list_files(limit: int = Query(20, ge=1, le=100)):
     """List all uploaded files."""
     db = get_db()
     if db is None:
-        return []
+        raise HTTPException(503, "Database unavailable")
 
     cursor = db.files.find({}).sort("created_at", -1).limit(limit)
     files = []

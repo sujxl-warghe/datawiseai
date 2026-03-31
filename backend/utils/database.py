@@ -3,7 +3,10 @@ from pymongo.server_api import ServerApi
 import ssl
 import certifi
 import os
+import logging
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -30,10 +33,10 @@ async def connect_db():
                 )
                 db = client[DB_NAME]
                 await client.admin.command("ping")
-                print(f"✅ Connected to MongoDB Atlas: {DB_NAME}")
+                logger.info(f"✅ Connected to MongoDB Atlas: {DB_NAME}")
                 return
             except Exception as e1:
-                print(f"⚠️  Attempt 1 failed: {e1}")
+                logger.warning(f"⚠️  Attempt 1 failed: {e1}")
 
             # Try 2: Allow any TLS version
             try:
@@ -46,10 +49,10 @@ async def connect_db():
                 )
                 db = client[DB_NAME]
                 await client.admin.command("ping")
-                print(f"✅ Connected to MongoDB Atlas (relaxed TLS): {DB_NAME}")
+                logger.info(f"✅ Connected to MongoDB Atlas (relaxed TLS): {DB_NAME}")
                 return
             except Exception as e2:
-                print(f"⚠️  Attempt 2 failed: {e2}")
+                logger.error(f"⚠️  Attempt 2 failed: {e2}")
                 raise e2
 
         else:
@@ -60,11 +63,11 @@ async def connect_db():
             )
             db = client[DB_NAME]
             await client.admin.command("ping")
-            print(f"✅ Connected to MongoDB local: {DB_NAME}")
+            logger.info(f"✅ Connected to MongoDB local: {DB_NAME}")
 
     except Exception as e:
-        print(f"❌ MongoDB connection failed: {e}")
-        print("⚠️  App will run without DB (uploads still work in memory)")
+        logger.error(f"❌ MongoDB connection failed: {e}")
+        logger.warning("⚠️  App will run without DB (uploads still work in memory)")
         db = None
 
 
@@ -72,7 +75,7 @@ async def close_db():
     global client
     if client:
         client.close()
-        print("🔌 MongoDB connection closed")
+        logger.info("🔌 MongoDB connection closed")
 
 
 def get_db():
