@@ -4,6 +4,8 @@ import { HardDrive, Download, Trash2, RefreshCw, Search, FileText, Brain } from 
 import { listSavedModels, deleteModel } from '../lib/api'
 import { formatRelative } from '../lib/utils'
 import toast from 'react-hot-toast'
+import { useAuth } from '../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
 const BASE_URL = 'https://datawiseai.onrender.com'
 
@@ -14,23 +16,33 @@ const TASK_COLORS = {
 }
 
 export default function SavedModels() {
+  const navigate = useNavigate()
+  const { user, loading } = useAuth()
   const [models,  setModels]  = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loadingModels, setLoadingModels] = useState(true)
   const [search,  setSearch]  = useState('')
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login')
+    }
+  }, [user, loading, navigate])
+
   const load = async () => {
-    setLoading(true)
+    if (!user) return
+    setLoadingModels(true)
     try {
       const data = await listSavedModels()
       setModels(Array.isArray(data) ? data : [])
     } catch (e) {
       toast.error(e.message)
     } finally {
-      setLoading(false)
+      setLoadingModels(false)
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (user) load() }, [user])
 
   const handleDelete = async (modelId, name) => {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return
@@ -112,7 +124,7 @@ export default function SavedModels() {
       )}
 
       {/* Loading */}
-      {loading && (
+      {(loading || loadingModels) && (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="card p-5 animate-pulse flex gap-4">
@@ -127,7 +139,7 @@ export default function SavedModels() {
       )}
 
       {/* Empty state */}
-      {!loading && models.length === 0 && (
+      {!loading && !loadingModels && models.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

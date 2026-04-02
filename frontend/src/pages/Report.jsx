@@ -1,12 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FileText, Download, RefreshCw, CheckCircle, BarChart2, Brain, Wrench } from 'lucide-react'
 import FileSelector from '../components/chat/FileSelector'
 import toast from 'react-hot-toast'
+import { useAuth } from '../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
 const BASE_URL = 'https://datawiseai.onrender.com'
 
 export default function Report() {
+  const navigate = useNavigate()
+  const { user, loading } = useAuth()
   const [selectedFile, setSelectedFile] = useState(null)
   const [title,        setTitle]        = useState('')
   const [name,         setName]         = useState('')
@@ -16,6 +20,13 @@ export default function Report() {
   const [includeFE,    setIncludeFE]    = useState(true)
   const [generating,   setGenerating]   = useState(false)
   const [done,         setDone]         = useState(false)
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login')
+    }
+  }, [user, loading, navigate])
 
   const handleGenerate = async () => {
     if (!selectedFile) return toast.error('Select a dataset first')

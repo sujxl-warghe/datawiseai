@@ -122,8 +122,8 @@ export default function Layout({ children }) {
 
         {/* Bottom Controls */}
         <div className="px-2 py-3 border-t space-y-1" style={{ borderColor: 'var(--border)' }}>
-          {/* User Profile */}
-          {user && (
+          {/* User Profile or Sign In */}
+          {user ? (
             <div className="relative">
               <button onClick={() => setShowProfile(s => !s)}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors"
@@ -193,6 +193,25 @@ export default function Layout({ children }) {
               </AnimatePresence>
               {showProfile && <div className="fixed inset-0 z-40" onClick={() => setShowProfile(false)} />}
             </div>
+          )}
+
+          {/* Sign In Button for Guests */}
+          {!user && (
+            <button onClick={() => navigate('/login')}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <User size={15} strokeWidth={1.8} className="shrink-0" />
+              <AnimatePresence>
+                {!collapsed && (
+                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }} className="text-sm whitespace-nowrap">
+                    Sign In
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
           )}
 
           {/* API key status */}
@@ -328,17 +347,26 @@ export default function Layout({ children }) {
 
               {/* Drawer Footer */}
               <div className="px-3 py-3 border-t space-y-1" style={{ borderColor: 'var(--border)' }}>
+                {!user && (
+                  <button onClick={() => { navigate('/login'); setMobileMenuOpen(false) }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm"
+                    style={{ color: 'var(--accent)' }}>
+                    <User size={15} /> Sign In
+                  </button>
+                )}
                 <button onClick={toggleTheme}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm"
                   style={{ color: 'var(--text-secondary)' }}>
                   {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
                   {theme === 'dark' ? 'Light mode' : 'Dark mode'}
                 </button>
-                <button onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm"
-                  style={{ color: '#f87171' }}>
-                  <LogOut size={15} /> Sign Out
-                </button>
+                {user && (
+                  <button onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm"
+                    style={{ color: '#f87171' }}>
+                    <LogOut size={15} /> Sign Out
+                  </button>
+                )}
               </div>
             </motion.div>
           </>

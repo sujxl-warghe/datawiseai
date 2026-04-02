@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null)
   const [loading, setLoading] = useState(true)  // checking saved token
 
-  // On mount — check saved token
+  // On mount — check saved token or create guest session
   useEffect(() => {
     const token = localStorage.getItem('auth_token')
     if (token) {
@@ -21,6 +21,9 @@ export function AuthProvider({ children }) {
         .catch(() => { localStorage.removeItem('auth_token'); delete api.defaults.headers.common['Authorization'] })
         .finally(() => setLoading(false))
     } else {
+      // Create guest session for anonymous users
+      const guestSessionId = crypto.randomUUID()
+      localStorage.setItem('guest_session', guestSessionId)
       setLoading(false)
     }
   }, [])

@@ -39,13 +39,6 @@ function LoadingScreen() {
   )
 }
 
-function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth()
-  if (loading) return <LoadingScreen />
-  if (!user)   return <Navigate to="/login" replace />
-  return children
-}
-
 function AppInner() {
   const { user } = useAuth()
   const [theme,      setTheme]      = useState(() => localStorage.getItem('theme') || 'dark')
@@ -78,27 +71,25 @@ function AppInner() {
         <Route path="/auth/callback" element={<AuthCallback />} />
 
         <Route path="/*" element={
-          <ProtectedRoute>
-            <Layout>
-              <Routes>
-                <Route path="/"             element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard"    element={<Dashboard />} />
-                <Route path="/upload"       element={<Upload />} />
-                <Route path="/analyze"      element={<Analyze />} />
-                <Route path="/ml"           element={<ML />} />
-                <Route path="/features"     element={<FeatureEngineering />} />
-                <Route path="/saved"        element={<SavedModels />} />
-                <Route path="/report"       element={<Report />} />
-                <Route path="/predict"      element={<Predict />} />
-                <Route path="/charts"       element={<ChartBuilder />} />
-                <Route path="/compare"      element={<ModelComparison />} />
-                <Route path="/learning"     element={<LearningCurve />} />
-                <Route path="/chat"         element={<Chat />} />
-                <Route path="/chat/:fileId" element={<Chat />} />
-                <Route path="/settings"     element={<Settings />} />
-              </Routes>
-            </Layout>
-          </ProtectedRoute>
+          <Layout>
+            <Routes>
+              <Route path="/"             element={<Dashboard />} />
+              <Route path="/dashboard"    element={<Dashboard />} />
+              <Route path="/upload"       element={<Upload />} />
+              <Route path="/analyze"      element={<Analyze />} />
+              <Route path="/ml"           element={<ML />} />
+              <Route path="/features"     element={<FeatureEngineering />} />
+              <Route path="/saved"        element={<SavedModels />} />
+              <Route path="/report"       element={<Report />} />
+              <Route path="/predict"      element={<Predict />} />
+              <Route path="/charts"       element={<ChartBuilder />} />
+              <Route path="/compare"      element={<ModelComparison />} />
+              <Route path="/learning"     element={<LearningCurve />} />
+              <Route path="/chat"         element={<Chat />} />
+              <Route path="/chat/:fileId" element={<Chat />} />
+              <Route path="/settings"     element={<Settings />} />
+            </Routes>
+          </Layout>
         } />
       </Routes>
     </AppContext.Provider>

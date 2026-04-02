@@ -1,14 +1,25 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Check, Key, Palette, Info } from 'lucide-react'
 import { useApp } from '../App'
 import toast from 'react-hot-toast'
+import { useAuth } from '../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
 export default function Settings() {
+  const navigate = useNavigate()
+  const { user, loading } = useAuth()
   const { apiKey, saveApiKey, theme, toggleTheme } = useApp()
   const [keyInput, setKeyInput] = useState(apiKey || '')
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login')
+    }
+  }, [user, loading, navigate])
 
   const handleSave = () => {
     saveApiKey(keyInput.trim())

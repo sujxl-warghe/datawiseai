@@ -9,6 +9,10 @@ import MetricsCard from '../components/charts/MetricsCard'
 import AlgoComparison from '../components/charts/AlgoComparison'
 import { formatRelative } from '../lib/utils'
 import toast from 'react-hot-toast'
+import { useAuth } from '../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
 const BASE_URL = 'https://datawiseai.onrender.com'
 
@@ -53,6 +57,8 @@ const CHART_TITLES = {
 }
 
 export default function ML() {
+  const navigate = useNavigate()
+  const { user } = useAuth()
   // Persistent state via localStorage
   const { state, set, reset } = useMLState()
   const {
@@ -150,6 +156,11 @@ export default function ML() {
   }
 
   const handleSave = async () => {
+    if (!user) {
+      toast.error('Please sign in to save models permanently')
+      navigate('/login')
+      return
+    }
     if (!result) return
     setSaveLoading(true)
     try {

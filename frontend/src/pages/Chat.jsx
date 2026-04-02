@@ -9,6 +9,7 @@ import TypingIndicator from '../components/chat/TypingIndicator'
 import FileSelector from '../components/chat/FileSelector'
 import ColumnPanel from '../components/ui/ColumnPanel'
 import toast from 'react-hot-toast'
+import { useAuth } from '../context/AuthContext'
 
 const SUGGESTIONS = [
   'Show me the first 10 rows',
@@ -21,6 +22,7 @@ const SUGGESTIONS = [
 export default function Chat() {
   const { fileId } = useParams()
   const { apiKey } = useApp()
+  const { user } = useAuth()
   const navigate = useNavigate()
 
   const [selectedFile, setSelectedFile] = useState(null)
@@ -46,8 +48,12 @@ export default function Chat() {
       getFile(fileId)
         .then(f => {
           setSelectedFile(f)
-          // Load history
-          return getQueryHistory(fileId)
+          // Load history only for authenticated users
+          if (user) {
+            return getQueryHistory(fileId)
+          }
+          return []
+        })
         })
         .then(history => {
           const msgs = []
@@ -132,6 +138,11 @@ export default function Chat() {
   }
 
   const clearChat = async () => {
+    if (!user) {
+      toast.error('Please sign in to clear chat history')
+      navigate('/login')
+      return
+    }
     if (!selectedFile || !messages.length) return
     if (!confirm('Clear all chat history for this file?')) return
     try {
