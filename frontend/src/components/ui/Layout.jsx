@@ -123,7 +123,7 @@ export default function Layout({ children }) {
         {/* Bottom Controls */}
         <div className="px-2 py-3 border-t space-y-1" style={{ borderColor: 'var(--border)' }}>
           {/* User Profile or Sign In */}
-          {user ? (
+          {user && (
             <div className="relative">
               <button onClick={() => setShowProfile(s => !s)}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors"
