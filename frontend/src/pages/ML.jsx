@@ -11,8 +11,6 @@ import { formatRelative } from '../lib/utils'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { useNavigate } from 'react-router-dom'
 
 const BASE_URL = 'https://datawiseai.onrender.com'
 
