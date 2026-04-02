@@ -54,7 +54,6 @@ export default function Chat() {
           }
           return []
         })
-        })
         .then(history => {
           const msgs = []
           history.reverse().forEach(q => {
